@@ -17,8 +17,8 @@ import java.sql.Connection;
 import java.sql.Driver;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,7 +39,7 @@ public abstract class JdbcDatabaseContainer<SELF extends JdbcDatabaseContainer<S
 
     private Driver driver;
 
-    private List<String> initScriptPaths = new ArrayList<>();
+    private List<String> initScriptPaths = Collections.emptyList();
 
     protected Map<String, String> parameters = new HashMap<>();
 
@@ -144,30 +144,17 @@ public abstract class JdbcDatabaseContainer<SELF extends JdbcDatabaseContainer<S
      * @return self
      */
     public SELF withInitScript(String initScriptPath) {
-        this.initScriptPaths = new ArrayList<>();
-        this.initScriptPaths.add(initScriptPath);
+        this.initScriptPaths = Collections.singletonList(initScriptPath);
         return self();
     }
 
     /**
-     * Sets an ordered array of scripts for initialization.
+     * Execute each init script in the given order
      *
-     * @param initScriptPaths paths to the script files
-     * @return self
+     * @since 1.20
      */
-    public SELF withInitScripts(String... initScriptPaths) {
-        return withInitScripts(Arrays.asList(initScriptPaths));
-    }
-
-    /**
-     * Sets an ordered collection of scripts for initialization.
-     *
-     * @param initScriptPaths paths to the script files
-     * @return self
-     */
-    public SELF withInitScripts(Iterable<String> initScriptPaths) {
-        this.initScriptPaths = new ArrayList<>();
-        initScriptPaths.forEach(this.initScriptPaths::add);
+    public SELF withInitScript(String... initScriptPaths) {
+        this.initScriptPaths = Arrays.asList(initScriptPaths);
         return self();
     }
 
@@ -362,10 +349,9 @@ public abstract class JdbcDatabaseContainer<SELF extends JdbcDatabaseContainer<S
      * Load init script content and apply it to the database if initScriptPath is set
      */
     protected void runInitScriptIfRequired() {
-        initScriptPaths
-            .stream()
-            .filter(Objects::nonNull)
-            .forEach(path -> ScriptUtils.runInitScript(getDatabaseDelegate(), path));
+        for (String initScriptPath : initScriptPaths) {
+            ScriptUtils.runInitScript(getDatabaseDelegate(), initScriptPath);
+        }
     }
 
     public void setParameters(Map<String, String> parameters) {
